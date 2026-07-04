@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DayFlow Planner</title>
+  <meta name="description" content="A clean GitHub Pages-ready daily planner, to-do list, activity tracker, and notes dashboard." />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">✦</div>
+        <div>
+          <h1>DayFlow</h1>
+          <p>Plan. Track. Finish.</p>
+        </div>
+      </div>
+
+      <button class="primary-action" id="quickAddBtn">+ New Activity</button>
+
+      <section class="sidebar-card auth-card" id="authCard">
+        <div class="sidebar-card-title">
+          <span>Account Sync</span>
+          <span class="sync-dot" id="syncDot" title="Sync status"></span>
+        </div>
+
+        <div id="authSignedOut" class="auth-panel">
+          <p class="auth-copy">Log in to save your planner across phone, laptop, and browser.</p>
+          <button id="googleLogin" class="primary-action compact full" type="button">Continue with Google</button>
+
+          <div class="auth-divider"><span>or email</span></div>
+          <input id="authEmail" type="email" placeholder="Email address" autocomplete="email" />
+          <input id="authPassword" type="password" placeholder="Password" autocomplete="current-password" />
+          <div class="auth-actions">
+            <button id="emailLogin" class="soft-btn" type="button">Log in</button>
+            <button id="emailSignup" class="soft-btn" type="button">Sign up</button>
+          </div>
+          <p class="auth-help" id="authHelp">Cloud sync activates after Firebase is configured.</p>
+        </div>
+
+        <div id="authSignedIn" class="auth-panel" hidden>
+          <p class="auth-copy">Signed in as</p>
+          <strong id="userName">User</strong>
+          <p class="auth-help" id="syncStatus">Cloud sync ready.</p>
+          <button id="logoutBtn" class="soft-btn full" type="button">Log out</button>
+        </div>
+      </section>
+
+      <nav class="tabs" aria-label="Main navigation">
+        <button class="tab active" data-view="today">Today</button>
+        <button class="tab" data-view="activities">Activities</button>
+        <button class="tab" data-view="planner">Planner</button>
+        <button class="tab" data-view="notes">Quick Notes</button>
+        <button class="tab" data-view="insights">Insights</button>
+      </nav>
+
+      <section class="sidebar-card">
+        <div class="sidebar-card-title">
+          <span>Categories</span>
+          <button id="addCategoryBtn" class="ghost-icon" title="Add category">+</button>
+        </div>
+        <div id="categoryList" class="category-list"></div>
+      </section>
+
+      <section class="sidebar-card mini">
+        <div class="sidebar-card-title"><span>Focus Timer</span></div>
+        <div class="timer-display" id="timerDisplay">25:00</div>
+        <div class="timer-actions">
+          <button id="timerStart">Start</button>
+          <button id="timerReset">Reset</button>
+        </div>
+      </section>
+
+      <footer class="sidebar-footer">
+        <button id="themeToggle" class="soft-btn">Toggle theme</button>
+        <button id="exportBtn" class="soft-btn">Export data</button>
+        <label class="soft-btn import-label" for="importFile">Import data</label>
+        <input id="importFile" type="file" accept="application/json" hidden />
+      </footer>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="dateLine">Daily planner</p>
+          <h2 id="viewTitle">Today</h2>
+        </div>
+        <div class="topbar-actions">
+          <label class="search-box">
+            <span>⌕</span>
+            <input id="searchInput" type="search" placeholder="Search activities, notes, tags..." />
+          </label>
+          <select id="sortSelect" aria-label="Sort activities">
+            <option value="deadline">Sort: deadline</option>
+            <option value="priority">Sort: priority</option>
+            <option value="created">Sort: newest</option>
+            <option value="progress">Sort: progress</option>
+          </select>
+        </div>
+      </header>
+
+      <section class="stats-grid" aria-label="Overview stats">
+        <article class="stat-card">
+          <span>Open</span>
+          <strong id="statOpen">0</strong>
+        </article>
+        <article class="stat-card">
+          <span>Done</span>
+          <strong id="statDone">0</strong>
+        </article>
+        <article class="stat-card">
+          <span>Due today</span>
+          <strong id="statToday">0</strong>
+        </article>
+        <article class="stat-card warning">
+          <span>Overdue</span>
+          <strong id="statOverdue">0</strong>
+        </article>
+      </section>
+
+      <section class="quick-capture" aria-label="Quick capture">
+        <input id="quickTitle" type="text" placeholder="Quick add: Assignment, groceries, submission..." />
+        <input id="quickDue" type="datetime-local" />
+        <select id="quickCategory"></select>
+        <button id="quickCreate">Add</button>
+      </section>
+
+      <section id="viewToday" class="view active-view">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Right now</p>
+            <h3>Your day at a glance</h3>
+          </div>
+          <div class="filter-pills" id="todayFilters">
+            <button class="pill active" data-filter="all">All</button>
+            <button class="pill" data-filter="open">Open</button>
+            <button class="pill" data-filter="done">Done</button>
+            <button class="pill" data-filter="overdue">Overdue</button>
+          </div>
+        </div>
+        <div id="todayList" class="activity-grid"></div>
+      </section>
+
+      <section id="viewActivities" class="view">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Activity tab</p>
+            <h3>All activities with deadline progress</h3>
+          </div>
+          <div class="filter-pills" id="activityFilters">
+            <button class="pill active" data-filter="all">All</button>
+            <button class="pill" data-filter="high">High priority</button>
+            <button class="pill" data-filter="uncategorized">Uncategorized</button>
+          </div>
+        </div>
+        <div id="activityList" class="activity-list"></div>
+      </section>
+
+      <section id="viewPlanner" class="view">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Planner</p>
+            <h3>Grouped by category</h3>
+          </div>
+        </div>
+        <div id="plannerBoard" class="planner-board"></div>
+      </section>
+
+      <section id="viewNotes" class="view notes-layout">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Scratchpad</p>
+            <h3>Quick notes</h3>
+          </div>
+          <span class="autosave" id="notesStatus">Saved</span>
+        </div>
+        <textarea id="quickNotes" placeholder="Write anything: ideas, reminders, class notes, shopping thoughts, references..."></textarea>
+      </section>
+
+      <section id="viewInsights" class="view">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Insights</p>
+            <h3>Progress and momentum</h3>
+          </div>
+        </div>
+        <div class="insights-grid">
+          <article class="insight-card">
+            <h4>Completion rate</h4>
+            <div class="ring" id="completionRing"><span>0%</span></div>
+          </article>
+          <article class="insight-card wide">
+            <h4>Category workload</h4>
+            <div id="workloadBars" class="workload-bars"></div>
+          </article>
+          <article class="insight-card wide">
+            <h4>Upcoming deadlines</h4>
+            <div id="upcomingList" class="compact-list"></div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="activityDialog" class="modal">
+    <form id="activityForm" method="dialog">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Activity editor</p>
+          <h3 id="modalTitle">New Activity</h3>
+        </div>
+        <button type="button" class="ghost-icon" id="closeDialog">×</button>
+      </div>
+      <input type="hidden" id="activityId" />
+      <label>Title
+        <input id="titleInput" type="text" required placeholder="e.g., Submit hydrology report" />
+      </label>
+      <div class="form-row">
+        <label>Category
+          <select id="categoryInput"></select>
+        </label>
+        <label>Priority
+          <select id="priorityInput">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </label>
+      </div>
+      <div class="form-row">
+        <label>Start
+          <input id="startInput" type="datetime-local" />
+        </label>
+        <label>Deadline
+          <input id="deadlineInput" type="datetime-local" required />
+        </label>
+      </div>
+      <div class="form-row">
+        <label>Tags
+          <input id="tagsInput" type="text" placeholder="study, urgent, market" />
+        </label>
+        <label>Repeat
+          <select id="repeatInput">
+            <option value="none">No repeat</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </label>
+      </div>
+      <label>Subtasks
+        <div id="subtaskEditor" class="subtask-editor"></div>
+        <button type="button" id="addSubtaskLine" class="soft-btn inline">+ Add subtask</button>
+      </label>
+      <label>Notes
+        <textarea id="notesInput" rows="4" placeholder="Add context, checklist, links, reminders..."></textarea>
+      </label>
+      <div class="modal-actions">
+        <button type="button" id="deleteActivity" class="danger-btn">Delete</button>
+        <div>
+          <button type="button" class="soft-btn" id="cancelActivity">Cancel</button>
+          <button type="submit" class="primary-action compact">Save Activity</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="categoryDialog" class="modal small-modal">
+    <form id="categoryForm" method="dialog">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Bundle tasks</p>
+          <h3>New Category</h3>
+        </div>
+        <button type="button" class="ghost-icon" id="closeCategoryDialog">×</button>
+      </div>
+      <label>Category name
+        <input id="categoryNameInput" type="text" required placeholder="Submissions, Groceries, Health..." />
+      </label>
+      <label>Accent color
+        <input id="categoryColorInput" type="color" value="#7c3aed" />
+      </label>
+      <button type="submit" class="primary-action compact full">Create Category</button>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="firebase-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

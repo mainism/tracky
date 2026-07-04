@@ -1,0 +1,16 @@
+{
+  "name": "DayFlow Planner",
+  "short_name": "DayFlow",
+  "description": "A clean daily planner, activity tracker, notes app, and to-do manager.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f7f4ef",
+  "theme_color": "#7c3aed",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
